@@ -155,4 +155,10 @@ class UserService implements UserInterface
 
         return $refresh_token;
     }
+    public function getaccounttype($user_id){
+
+        $account_type = User::where('id', $user_id)->value('account_type');
+
+        return $account_type;
+    }
 }
