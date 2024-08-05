@@ -23,6 +23,7 @@ class CreateUsersTable extends Migration
             $table->string('account_level')->nullable();
             $table->string('account_status')->nullable();
             $table->boolean('is_new')->default(true);
+            $table->string('refresh_token')->nullable();
             $table->timestamps();
         });
     }

@@ -28,6 +28,8 @@ Route::post('/events', 'InfluxController@saveEvents');
 Route::post('/register', 'RegistrationController@register');
 
 Route::post('/google/auth', 'GoogleController@authenticate');
+Route::get('/google/callback', 'GoogleController@handleGoogleCallback');
+
 Route::post('/microsoft/auth', 'MicrosoftController@authenticate');
 Route::get('/elements/{id}/path', 'ElementController@getElementPath');
 Route::get('/payments/test', 'PaymentController@check');

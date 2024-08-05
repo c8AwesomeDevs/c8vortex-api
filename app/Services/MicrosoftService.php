@@ -8,15 +8,19 @@ use Microsoft\Graph\Model\User;
 
 class MicrosoftService implements MicrosoftInterface
 {
-
     public function verifyMsToken($token) {
         $graph = new Graph();
         $graph->setAccessToken($token);
 
-        $user = $graph->createRequest("GET", "/me")
-                      ->setReturnType(User::class)
-                      ->execute();
-    
-        return $user;
+        try {
+            $user = $graph->createRequest("GET", "/me")
+                          ->setReturnType(User::class)
+                          ->execute();
+
+            return $user;
+        } catch (\Exception $e) {
+            // Handle exception, possibly log error or return a specific message
+            return ['error' => $e->getMessage()];
+        }
     }
 }

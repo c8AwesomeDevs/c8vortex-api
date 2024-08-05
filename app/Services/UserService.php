@@ -148,4 +148,11 @@ class UserService implements UserInterface
             return false;
         }
     }
+
+    public function getrefreshtoken($user_id){
+
+        $refresh_token = User::where('id', $user_id)->value('refresh_token');
+
+        return $refresh_token;
+    }
 }

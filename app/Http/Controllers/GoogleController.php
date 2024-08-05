@@ -8,6 +8,7 @@ use App\Services\UserService;
 use App\Services\CompanyService;
 use App\Services\StripeService;
 use App\User;
+use Illuminate\Support\Facades\Http;
 
 class GoogleController extends Controller
 {
@@ -29,6 +30,7 @@ class GoogleController extends Controller
                     if ($stripeService->isSubscriptionActive($user['id'])) {
                         $user_data = [
                             'account_type' => 'google',
+                            'refresh_token' => $request->refresh_token
                         ];
                         // Email is registered in the database and the account is active
                         // Perform necessary actions
