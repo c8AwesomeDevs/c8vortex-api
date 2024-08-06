@@ -25,6 +25,7 @@ use App\Services\CompanyService;
 use App\Services\StripeService;
 use App\Services\SubscriptionService;
 use DateTime;
+use DateTimeZone;
 use Illuminate\Support\Facades\Http;
 use App\Services\ADHService;
 
@@ -165,7 +166,6 @@ class AttributeValueController extends Controller
             return response()->json(['error' => 'Tenants or Namespace not found in ADH configuration'], 400);
         }
     
-        $ADHtimestamp = now()->toISOString(); // Use the current time as an example
     
         // Validate Request
         $validated = $request->validate([
@@ -188,6 +188,10 @@ class AttributeValueController extends Controller
             return response()->json(["error" => "You've reached the limit for 'Datapoint' elements"], 400);
         }
         $timestamp = date('Y-m-d H:i:s', strtotime($request->date . ' ' . $request->time));
+
+        $ADHtimestamp = new DateTime($request->date . ' ' . $request->time, new DateTimeZone('Asia/Manila'));
+        $ADHtimestamp->setTimezone(new DateTimeZone('UTC'));
+        $formattedADHTimestamp = $ADHtimestamp->format('Y-m-d H:i:s');
     
         if ($attributeValueService->dataExists($id, $timestamp)) {
             return response()->json([
@@ -241,7 +245,7 @@ class AttributeValueController extends Controller
             'asset_id' => $request->asset_id,
             'element_id' => $id,
             'company_id' => $request->company_id,
-            'timestamp' => $ADHtimestamp,
+            'timestamp' => $formattedADHTimestamp,
             'acetylene' => $request->acetylene,
             'acetylene_roc' => $acetylene_roc,
             'ethylene' => $request->ethylene,
