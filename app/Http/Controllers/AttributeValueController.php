@@ -107,8 +107,66 @@ class AttributeValueController extends Controller
         return $summary;
     }
 
-    public function get(Request $request, CommentsService $commentsService, AttributeValueService $attributeValueService, $id)
-    {
+    public function get(Request $request,ElementService $elementservice, ADHService $adhService, CommentsService $commentsService, AttributeValueService $attributeValueService, $id)
+    {   
+      
+
+        $start = $request->start;
+        $end = $request->end;
+        $id = $id;
+        $startIndex = Carbon::parse($start)->format('M j, Y, g:i:s A');
+        $endIndex = Carbon::parse($end)->format('M j, Y, g:i:s A');
+      
+        $adh_config = $adhService->getAdh($request->company_id);
+        if (empty($adh_config)) {
+            return response()->json(['error' => 'ADH configuration not found'], 400);
+        }
+        $accessToken = $this->getAccessToken();
+        if (!$accessToken) {
+            return response()->json(['error' => 'Failed to retrieve access token'], 400);
+        }
+
+        $element_details = $elementservice->getElementDetails($id);
+        $stream_id = $adh_config[0]['stream_id'] ?? null;
+        $adh_value = $this->getDataToADH($accessToken, $stream_id, $startIndex, $endIndex, $id);
+        // Decode the JSON string into an array
+        $adh_value = json_decode($adh_value, true);
+        
+        $latest_value = null;
+        
+        if (!empty($adh_value)) {
+            // Sort the array by timestamp in descending order
+            usort($adh_value, function ($a, $b) {
+                return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+            });
+        
+            // Get the latest value (first element in the sorted array)
+            $latest_value = $adh_value[0];
+        } else {
+            // Handle the case where $adh_value is empty
+            $adh_value = [];
+        }
+
+     // Prepare the merged data
+        $merged_data = [];
+
+        // Iterate over each ADH value and merge with element details
+        foreach ($adh_value as $value) {
+            $merged_data[] = array_merge($value, [
+                'element_id' => $element_details['id'],
+                'name' => $element_details['name'],
+                'description' => $element_details['description'],
+                'path' => $element_details['path'],
+                'parent_id' => $element_details['parent_id'],
+                'has_child' => $element_details['has_child'],
+                'created_at' => $element_details['created_at'],
+                // Add more fields from element details as needed
+            ]);
+        }
+
+        
+
+
         $values = $attributeValueService->getAttributeValues($id, $request->start, $request->end);
         $latest = $attributeValueService->getLatestAttributeValue($id, $request->start, $request->end);
 
@@ -116,37 +174,39 @@ class AttributeValueController extends Controller
 
         $svgs = new SVGController();
         $rawdata_for_svgs = array();
-        foreach ($values as $key => $value) {
+        foreach ($merged_data as $key => $value) {
             array_push($rawdata_for_svgs, array(
-                "timestamp" => $values[$key]->timestamp,
-                "c2h2" => $values[$key]->acetylene,
-                "c2h4" => $values[$key]->ethylene,
-                "ch4" => $values[$key]->methane,
-                "c2h6" => $values[$key]->ethane,
-                "c2h2_roc" => $values[$key]->acetylene_roc,
-                "c2h4_roc" => $values[$key]->ethylene_roc,
-                "ch4_roc" => $values[$key]->methane_roc,
-                "c2h6_roc" => $values[$key]->ethane_roc,
-                "h2_roc" => $values[$key]->hydrogen_roc,
-                "co" => $values[$key]->carbon_monoxide,
-                "co2" => $values[$key]->carbon_dioxide,
-                "h2" => $values[$key]->hydrogen,
-                "n2" => $values[$key]->nitrogen,
-                "t1" => $values[$key]->t1,
-                "t2" => $values[$key]->t2,
-                "t3" => $values[$key]->t3_biotemp,
-                "t4" => $values[$key]->t4,
-                "t5" => $values[$key]->t5,
-                "t6" => $values[$key]->t6,
-                "t7" => $values[$key]->t7,
-                "p1" => $values[$key]->p1,
-                "p2" => $values[$key]->p2,
+                "timestamp" => $value['timestamp'] ?? null,  
+                "c2h2" => $value['acetylene'] ?? null,       
+                "c2h4" => $value['ethylene'] ?? null,        
+                "ch4" => $value['methane'] ?? null,          
+                "c2h6" => $value['ethane'] ?? null,          
+                "c2h2_roc" => $value['acetylene_roc'] ?? null, 
+                "c2h4_roc" => $value['ethylene_roc'] ?? null,  
+                "ch4_roc" => $value['methane_roc'] ?? null,    
+                "c2h6_roc" => $value['ethane_roc'] ?? null,    
+                "h2_roc" => $value['hydrogen_roc'] ?? null,    
+                "co" => $value['carbon_monoxide'] ?? null,     
+                "co2" => $value['carbon_dioxide'] ?? null,     
+                "h2" => $value['hydrogen'] ?? null,            
+                "n2" => $value['nitrogen'] ?? null,            
+                "t1" => $value['t1'] ?? null,                  
+                "t2" => $value['t2'] ?? null,                  
+                "t3" => $value['t3_biotemp'] ?? null,          
+                "t4" => $value['t4'] ?? null,                  
+                "t5" => $value['t5'] ?? null,                  
+                "t6" => $value['t6'] ?? null,                  
+                "t7" => $value['t7'] ?? null,                  
+                "p1" => $value['p1'] ?? null,                  
+                "p2" => $value['p2'] ?? null,                  // Default to null if not set
             ));
         }
 
         return response()->json([
-            'values' => $values,
-            'current' => $latest,
+            'adh_value' => $adh_value,
+            'values' => $merged_data,
+            'current' => $latest_value,
+            'merge_Data' => $merged_data,
             // 'previous' => $previous,
             'svgs' => $svgs->assembleSVGs($rawdata_for_svgs)
         ], 200, [], JSON_NUMERIC_CHECK);
@@ -319,6 +379,23 @@ class AttributeValueController extends Controller
             'Content-Type' => 'application/json',
             'Authorization' => $authorizationToken
         ])->post($url, $dataPayload);
+    }
+
+    private function getDataToADH($accessToken, $stream_id, $startIndex, $endIndex, $element_id)
+    {   
+        $url = 'https://auea.datahub.connect.aveva.com/api/v1/Tenants/' . env('ADH_TENANT_ID') . '/Namespaces/' . env('ADH_NAMESPACE') . '/Streams/' . $stream_id . '/Data';
+
+        $response = Http::withToken($accessToken)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+            ])
+            ->get($url, [
+                'startIndex' => $startIndex,
+                'endIndex' => $endIndex,
+                'filter' => 'element_id eq ' . $element_id,
+            ]);
+
+      return $response->body();
     }
 
     private function updateClosestNextValues(AttributeValueService $attributeValueService, $id, $timestamp, $request)

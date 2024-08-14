@@ -59,7 +59,8 @@ class GoogleController extends Controller
                 return response()->json(['error' => 'Email is not registered'], 404);
             }
         } else {
-            return response()->json(['Access Denied'], 403);
+            // return response()->json(['Access Denied'], 403);
+            return response(['error' => 'Access Denied'], 403);
         }
     }
 

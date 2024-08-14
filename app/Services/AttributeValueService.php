@@ -17,18 +17,7 @@ class AttributeValueService implements AttributeValueInterface
     //     return $values->get();
     // }
 
-    public function getAttributeValues($element_id, $start = null, $end = null, $order = 'DESC') {
-        $values = AttributeValue::join('elements', 'elements.id', '=', 'attribute_values.element_id')
-            ->where('element_id', $element_id);
     
-        if ($start && $end) {
-            $values->whereBetween('timestamp', [$start, $end]);
-        }
-        $values->orderBy('timestamp', $order);
-    
-        return $values->get();
-    }    
-
     public function deleteAllAttributeValues($company_id){
 
         $deleteAllAttributeValues = AttributeValue::where('company_id', $company_id)->delete();
@@ -94,6 +83,19 @@ class AttributeValueService implements AttributeValueInterface
     
         return $previous_value;
     }
+
+    public function getAttributeValues($element_id, $start = null, $end = null, $order = 'DESC') {
+        $values = AttributeValue::join('elements', 'elements.id', '=', 'attribute_values.element_id')
+            ->where('element_id', $element_id);
+    
+        if ($start && $end) {
+            $values->whereBetween('timestamp', [$start, $end]);
+        }
+        $values->orderBy('timestamp', $order);
+    
+        return $values->get();
+    }    
+
 
     public function getLatestAttributeValue($element_id, $start = null, $end = null) {
         $value = AttributeValue::where('element_id', $element_id)

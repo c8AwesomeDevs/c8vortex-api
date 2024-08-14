@@ -69,6 +69,6 @@ class ApiToken
 
     protected function unauthorizedResponse()
     {
-        return response(['message' => 'Unauthorized'], 401);
+        return response(['error' => 'Unauthorized'], 401);
     }
 }
