@@ -28,7 +28,8 @@ Route::post('/events', 'InfluxController@saveEvents');
 Route::post('/register', 'RegistrationController@register');
 
 Route::post('/google/auth', 'GoogleController@authenticate');
-Route::get('/google/callback', 'GoogleController@handleGoogleCallback');
+Route::get('/auth/google/callback', 'GoogleController@handleGoogleCallback');
+Route::get('/auth/google/redirect', 'GoogleController@redirectToGoogle');
 
 Route::post('/microsoft/auth', 'MicrosoftController@authenticate');
 Route::get('/elements/{id}/path', 'ElementController@getElementPath');
