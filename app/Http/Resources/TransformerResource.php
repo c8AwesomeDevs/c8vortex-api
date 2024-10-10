@@ -18,6 +18,7 @@ class TransformerResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'parent_id' => $this->parent_id,  
             'company_id' => $this->company_id,
             'name' => $this->name,
             'description' => $this->description,
